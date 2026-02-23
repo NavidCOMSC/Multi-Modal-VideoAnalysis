@@ -10,7 +10,9 @@ class CameraSource(BaseModel):
     camera_type: Literal["dashcam_front", "dashcam_rear", "cctv"] = Field(
         ..., description="Type of camera that recorded the footage."
     )
-    file_name: str = Field(..., description="Name or path of the video file.")
+    video_file_name: str = Field(
+        ..., description="Name or path of the source video file."
+    )
     duration_seconds: float | None = Field(
         None, description="Duration of the video in seconds."
     )
@@ -20,8 +22,8 @@ class CrashEvent(BaseModel):
     """A single detected crash event within a video."""
 
     camera_type: str = Field(..., description="Camera source that captured the event.")
-    file_name: str = Field(
-        ..., description="Video file in which the crash was detected."
+    video_file_name: str = Field(
+        ..., description="Video file name in which the crash was detected."
     )
     crash_timestamp_seconds: float = Field(
         ...,
