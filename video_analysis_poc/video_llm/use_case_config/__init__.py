@@ -13,6 +13,7 @@ from use_case_config.metadata import (
     LLMAgentTemplate,
     LiteLLMTemplate,
     LangfuseTemplate,
+    MetadataTemplate,
 )
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "LLMAgentTemplate",
     "LiteLLMTemplate",
     "LangfuseTemplate",
+    "MetadataTemplate",
 ]
