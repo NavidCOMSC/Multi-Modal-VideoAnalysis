@@ -69,9 +69,9 @@ class VideoAgentTemplate(BaseModel):
         ..., description="Langfuse prompt template name for the video analysis task."
     )
     temperature: float | None = Field(default=0.0, description="Sampling temperature.")
-    reasoning_effort: str | None = Field(
-        default=None, description="Reasoning effort level."
-    )
+    reasoning_effort: (
+        Literal["none", "minimal", "low", "medium", "high", "default"] | None
+    ) = Field(default=None, description="Reasoning effort level.")
     api_version: str | None = Field(default=None, description="API version override.")
     max_video_size_mb: float = Field(
         default=100.0, description="Maximum allowed video file size in MB."
