@@ -12,6 +12,8 @@ class ObservationPayload:
     This payload is used with the start_as_current_observation context manager to create
     and manage observations within a trace context.
 
+    TODO: Consider Prune the fields in this dataclass to only those that are relevant for the observation types we want to support (e.g. span, generation, embedding)
+
     Attributes:
         name: Name of the observation (e.g., function or operation name).
         as_type: Type of observation to create ("span", "generation", or "embedding"). Defaults to "span".

@@ -40,10 +40,9 @@ def langfuse_observation(
     # Create or retrieve the trace
     trace = langfuse.trace(id=trace_id, name=trace_name)
 
+    observation = trace.span(**data)
     if as_type == "generation":
         observation = trace.generation(**data)
-    else:
-        observation = trace.span(**data)
 
     try:
         yield observation
@@ -82,7 +81,6 @@ def create_langfuse_event(
         ValueError: If required keys are missing or datetime fields invalid.
     """
     data = payload.to_dict()
-    # langfuse.create_event(**data)
 
     # Extract trace_context if present, fall back to trace_id parameter
     event_trace_id = data.pop("trace_context", None) or trace_id

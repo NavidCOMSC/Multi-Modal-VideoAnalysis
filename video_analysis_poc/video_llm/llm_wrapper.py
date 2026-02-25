@@ -22,7 +22,7 @@ from schema.video import (
 from video_analysis_poc.connection.langfuse.tracing_connection import (
     langfuse_observation,
 )
-from typing import Optional, List, Literal
+from typing import Literal
 
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class VideoLLM:
         self,
         llm_agent: VideoAgentTemplate,
         langfuse: Langfuse,
-        metadata_instance: Optional[MetadataTemplate] = None,
+        metadata_instance: MetadataTemplate | None = None,
     ) -> None:
         """
         Parameters:
@@ -107,7 +107,7 @@ class VideoLLM:
         ext = Path(video_path).suffix.lstrip(".").lower()
         return _VIDEO_MIME_TYPES.get(ext, "video/mp4")
 
-    def _validate_video_sources(self, camera_sources: List[CameraSource]) -> None:
+    def _validate_video_sources(self, camera_sources: list[CameraSource]) -> None:
         """Validate that all video sources meet size and format constraints.
 
         Parameters:
@@ -118,26 +118,28 @@ class VideoLLM:
             FileNotFoundError: If a referenced file does not exist.
         """
         for source in camera_sources:
-            path = Path(source.file_name)
+            path = Path(source.video_file_name)
             if not path.exists():
-                raise FileNotFoundError(f"Video file not found: {source.file_name}")
+                raise FileNotFoundError(
+                    f"Video file not found: {source.video_file_name}"
+                )
 
             ext = path.suffix.lstrip(".").lower()
             if ext not in self.llm_agent.supported_formats:
                 raise ValueError(
-                    f"Unsupported format '.{ext}' for {source.file_name}. "
+                    f"Unsupported format '.{ext}' for {source.video_file_name}. "
                     f"Supported: {self.llm_agent.supported_formats}"
                 )
 
             size_mb = path.stat().st_size / (1024 * 1024)
             if size_mb > self.llm_agent.max_video_size_mb:
                 raise ValueError(
-                    f"Video {source.file_name} is {size_mb:.1f} MB, "
+                    f"Video {source.video_file_name} is {size_mb:.1f} MB, "
                     f"exceeding limit of {self.llm_agent.max_video_size_mb} MB."
                 )
 
     def _build_video_content_parts(
-        self, camera_sources: List[CameraSource]
+        self, camera_sources: list[CameraSource]
     ) -> list[dict]:
         """Build multimodal content parts for the LiteLLM messages payload.
 
@@ -152,13 +154,13 @@ class VideoLLM:
         """
         parts = []
         for source in camera_sources:
-            mime = self._get_mime_type(source.file_name)
-            b64 = self._encode_video_to_base64(source.file_name)
+            mime = self._get_mime_type(source.video_file_name)
+            b64 = self._encode_video_to_base64(source.video_file_name)
 
             parts.append(
                 {
                     "type": "text",
-                    "text": f"[{source.camera_type}] Video file: {Path(source.file_name).name}",
+                    "text": f"[{source.camera_type}] Video file: {Path(source.video_file_name).name}",
                 }
             )
             parts.append(
@@ -174,14 +176,13 @@ class VideoLLM:
 
     async def analyse_crash_footage(
         self,
-        camera_sources: List[CameraSource],
+        camera_sources: list[CameraSource],
         prompt_text: str,
         prompt_object: TextPromptClient | None = None,
         task_name: str | None = None,
-        temperature: Optional[float] = None,
-        reasoning_effort: Optional[
-            Literal["none", "minimal", "low", "medium", "high", "default"]
-        ] = None,
+        temperature: float | None = None,
+        reasoning_effort: Literal["none", "minimal", "low", "medium", "high", "default"]
+        | None = None,
     ) -> VideoAnalysisOutput:
         """Analyse one or more video files to detect crash timestamps.
 
@@ -210,6 +211,8 @@ class VideoLLM:
         # Validate all inputs before making the API call
         self._validate_video_sources(camera_sources)
 
+        # TODO: if temprature or reasoning_effort are None always, these conditional assignments are redundant and can be removed.
+
         if temperature is None:
             temperature = getattr(self.llm_agent, "temperature", 0.0)
         if reasoning_effort is None:
@@ -226,8 +229,11 @@ class VideoLLM:
                 "role": "system",
                 "content": (
                     "You are an expert video analyst specialising in road traffic "
-                    "collision detection. Analyse the provided dashcam and CCTV footage "
-                    "carefully. Return your findings as a JSON object."
+                        "collision detection. Analyse the provided dashcam and CCTV footage "
+                        "for crash events, near-misses, impact moments, sequence of events, "
+                        "road-user involvement (vehicles, pedestrians, cyclists), probable "
+                        "cause, and confidence per event. Include timestamps and concise "
+                        "descriptions, then return your findings as a JSON object."
                 ),
             },
             {
