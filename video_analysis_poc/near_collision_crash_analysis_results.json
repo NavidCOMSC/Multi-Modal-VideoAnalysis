@@ -1,0 +1,27 @@
+{
+  "task_name": "video_crash_analysis_demo",
+  "crash_events": [
+    {
+      "camera_type": "dashcam_front",
+      "video_file_name": "Inbound_CHO_Dashcam_20-50-780086.mp4",
+      "crash_timestamp_seconds": 39.0,
+      "crash_timestamp_display": "00:00:39",
+      "confidence": 0.8,
+      "description": "Near-miss event. A white van, waiting in the left lane at a roundabout entrance, abruptly pulls out into the dashcam vehicle's lane, cutting in front to enter the roundabout. The dashcam vehicle was stationary and had to remain so to avoid a collision."
+    }
+  ],
+  "summary": "The video captures one near-miss event at a roundabout. A white van unsafely changed lanes directly in front of the stationary dashcam vehicle to enter the roundabout, creating a significant risk of collision. No actual impact occurred.",
+  "raw_output": {
+    "crash_events": [
+      {
+        "camera_type": "dashcam_front",
+        "video_file_name": "Inbound_CHO_Dashcam_20-50-780086.mp4",
+        "crash_timestamp_seconds": 39.0,
+        "crash_timestamp_display": "00:00:39",
+        "confidence": 0.8,
+        "description": "Near-miss event. A white van, waiting in the left lane at a roundabout entrance, abruptly pulls out into the dashcam vehicle's lane, cutting in front to enter the roundabout. The dashcam vehicle was stationary and had to remain so to avoid a collision."
+      }
+    ],
+    "summary": "The video captures one near-miss event at a roundabout. A white van unsafely changed lanes directly in front of the stationary dashcam vehicle to enter the roundabout, creating a significant risk of collision. No actual impact occurred."
+  }
+}
