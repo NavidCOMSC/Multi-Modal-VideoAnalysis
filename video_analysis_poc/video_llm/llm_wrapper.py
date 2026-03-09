@@ -1,13 +1,14 @@
 """Module for video-based LLM inference using Gemini 2.5 Pro via LiteLLM.
 
-Supports both the original crash-only analysis pipeline and the extended
-scene-description pipeline that captures all detected objects, environmental
-context, and rich event metadata (including forensic-level crash details).
+Supports both crash analysis and the scene description pipeline that captures
+all detected objects, environmental conditions, and rich event metadata(inlcuding
+forensic-level crash details).
 """
 
 import litellm
 from litellm.files.main import ModelResponse
 import json
+import asyncio
 import base64
 import logging
 import os
@@ -17,12 +18,10 @@ from langfuse.model import TextPromptClient
 from langfuse_schema import ObservationPayload
 from use_case_config.metadata import MetadataTemplate
 from schema.video import (
-    # Original crash-only models (backward compatibility)
     VideoAgentTemplate,
     VideoAnalysisOutput,
     CrashEvent,
     CameraSource,
-    # Extended scene-description models
     DetectedObject,
     CrashInvolvedParty,
     WitnessedCrashDetail,
@@ -77,7 +76,7 @@ _SCENE_ANALYSIS_SYSTEM_PROMPT = (
 
 
 class VideoLLM:
-    """Async wrapper around LiteLLM for video-based analysis with Langfuse instrumentation.
+    """Async wrapper around LiteLLM for video-based crash detection with Langfuse instrumentation.
 
     Responsibilities:
     - Configure LiteLLM global settings from a MetadataTemplate instance.
@@ -119,8 +118,6 @@ class VideoLLM:
         ) or os.getenv("LITELLM_URL")
         litellm.api_version = self.llm_agent.api_version
         litellm.suppress_debug_info = True
-
-    # ── Static helpers ────────────────────────────────────────────────
 
     @staticmethod
     def _encode_video_to_base64(video_path: str) -> str:
@@ -382,9 +379,7 @@ class VideoLLM:
         Returns:
             List of CrashEvent instances.
         """
-        return [
-            CrashEvent(**event) for event in parsed.get("crash_events", [])
-        ]
+        return [CrashEvent(**event) for event in parsed.get("crash_events", [])]
 
     @staticmethod
     def _parse_environment(parsed: dict) -> EnvironmentContext | None:
@@ -411,9 +406,7 @@ class VideoLLM:
         Returns:
             List of DetectedObject instances.
         """
-        return [
-            DetectedObject(**obj) for obj in parsed.get("detected_objects", [])
-        ]
+        return [DetectedObject(**obj) for obj in parsed.get("detected_objects", [])]
 
     @staticmethod
     def _parse_scene_events(parsed: dict) -> list[SceneEvent]:
@@ -445,9 +438,7 @@ class VideoLLM:
                     involved_parties=parties, **detail_data
                 )
 
-            events.append(
-                SceneEvent(witnessed_crash_detail=crash_detail, **evt_data)
-            )
+            events.append(SceneEvent(witnessed_crash_detail=crash_detail, **evt_data))
 
         return events
 
@@ -617,11 +608,7 @@ class VideoLLM:
             output.task_name,
             len(output.detected_objects),
             len(output.events),
-            sum(
-                1
-                for e in output.events
-                if e.event_type in ("collision", "near_miss")
-            ),
+            sum(1 for e in output.events if e.event_type in ("collision", "near_miss")),
         )
 
         return output
