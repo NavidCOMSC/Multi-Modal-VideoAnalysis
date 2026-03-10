@@ -1,10 +1,8 @@
 from .video import (
-    # Original models (backward compatibility)
     CameraSource,
     CrashEvent,
     VideoAgentTemplate,
     VideoAnalysisOutput,
-    # Scene-description models
     DetectedObject,
     CrashInvolvedParty,
     WitnessedCrashDetail,
@@ -14,12 +12,10 @@ from .video import (
 )
 
 __all__ = [
-    # Original models
     "CameraSource",
     "CrashEvent",
     "VideoAgentTemplate",
     "VideoAnalysisOutput",
-    # Scene-description models
     "DetectedObject",
     "CrashInvolvedParty",
     "WitnessedCrashDetail",

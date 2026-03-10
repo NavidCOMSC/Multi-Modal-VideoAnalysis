@@ -4,11 +4,6 @@ from pydantic import BaseModel, Field
 from typing import Literal
 
 
-# ═══════════════════════════════════════════════════════════════════════
-# Original crash-only schemas (retained for backward compatibility)
-# ═══════════════════════════════════════════════════════════════════════
-
-
 class CameraSource(BaseModel):
     """Describes a single camera source in the video data."""
 
@@ -24,12 +19,7 @@ class CameraSource(BaseModel):
 
 
 class CrashEvent(BaseModel):
-    """A single detected crash event within a video.
-
-    .. deprecated::
-        Retained for backward compatibility with the crash-only pipeline.
-        New code should use ``SceneEvent`` with ``witnessed_crash_detail``.
-    """
+    """A single detected crash event within a video."""
 
     camera_type: str = Field(..., description="Camera source that captured the event.")
     video_file_name: str = Field(
@@ -52,12 +42,7 @@ class CrashEvent(BaseModel):
 
 
 class VideoAnalysisOutput(BaseModel):
-    """Structured output from video crash analysis.
-
-    .. deprecated::
-        Retained for backward compatibility with the crash-only pipeline.
-        New code should use ``VideoSceneAnalysisOutput``.
-    """
+    """Structured output from video crash analysis."""
 
     task_name: str | None = Field(
         None, description="Logical label for this analysis run."
@@ -95,11 +80,6 @@ class VideoAgentTemplate(BaseModel):
         default_factory=lambda: ["mp4", "avi", "mov", "mkv"],
         description="Accepted video file formats.",
     )
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# Extended scene-description schemas
-# ═══════════════════════════════════════════════════════════════════════
 
 
 class DetectedObject(BaseModel):
@@ -222,9 +202,7 @@ class SceneEvent(BaseModel):
     timestamp_display: str = Field(
         ..., description="Human-readable timestamp, e.g. '00:01:34'."
     )
-    description: str = Field(
-        ..., description="Concise description of what happened."
-    )
+    description: str = Field(..., description="Concise description of what happened.")
     involved_objects: list[str] = Field(
         default_factory=list,
         description="List of object types involved in this event.",
@@ -249,22 +227,50 @@ class SceneEvent(BaseModel):
 class EnvironmentContext(BaseModel):
     """High-level environmental and road context."""
 
-    weather: str | None = Field(None, description="Observed weather: 'clear', 'rain', 'fog', 'snow', 'overcast', etc.")
-    lighting: str | None = Field(None, description="Lighting conditions: 'daylight', 'dusk', 'night', 'artificial', etc.")
-    road_type: str | None = Field(None, description="Road type: 'motorway', 'urban', 'suburban', 'rural', 'roundabout', etc.")
-    road_surface: str | None = Field(None, description="Surface condition: 'dry', 'wet', 'icy', 'gravel', etc.")
-    traffic_density: str | None = Field(None, description="Traffic level: 'empty', 'light', 'moderate', 'heavy', 'congested'.")
-    additional_notes: str | None = Field(None, description="Any other environmental observations.")
+    weather: str | None = Field(
+        None,
+        description="Observed weather: 'clear', 'rain', 'fog', 'snow', 'overcast', etc.",
+    )
+    lighting: str | None = Field(
+        None,
+        description="Lighting conditions: 'daylight', 'dusk', 'night', 'artificial', etc.",
+    )
+    road_type: str | None = Field(
+        None,
+        description="Road type: 'motorway', 'urban', 'suburban', 'rural', 'roundabout', etc.",
+    )
+    road_surface: str | None = Field(
+        None, description="Surface condition: 'dry', 'wet', 'icy', 'gravel', etc."
+    )
+    traffic_density: str | None = Field(
+        None,
+        description="Traffic level: 'empty', 'light', 'moderate', 'heavy', 'congested'.",
+    )
+    additional_notes: str | None = Field(
+        None, description="Any other environmental observations."
+    )
 
 
 class VideoSceneAnalysisOutput(BaseModel):
     """Structured output from full video scene analysis."""
 
-    task_name: str | None = Field(None, description="Logical label for this analysis run.")
+    task_name: str | None = Field(
+        None, description="Logical label for this analysis run."
+    )
     camera_type: str | None = Field(None, description="Camera source type.")
     video_file_name: str | None = Field(None, description="Source video file name.")
-    environment: EnvironmentContext | None = Field(None, description="Environmental and road context.")
-    detected_objects: list[DetectedObject] = Field(default_factory=list, description="All objects detected in the footage.")
-    events: list[SceneEvent] = Field(default_factory=list, description="Notable events observed in the footage.")
-    summary: str | None = Field(None, description="Overall narrative summary of the footage.")
-    raw_output: dict | None = Field(None, description="Raw parsed JSON output from the model.")
+    environment: EnvironmentContext | None = Field(
+        None, description="Environmental and road context."
+    )
+    detected_objects: list[DetectedObject] = Field(
+        default_factory=list, description="All objects detected in the footage."
+    )
+    events: list[SceneEvent] = Field(
+        default_factory=list, description="Notable events observed in the footage."
+    )
+    summary: str | None = Field(
+        None, description="Overall narrative summary of the footage."
+    )
+    raw_output: dict | None = Field(
+        None, description="Raw parsed JSON output from the model."
+    )

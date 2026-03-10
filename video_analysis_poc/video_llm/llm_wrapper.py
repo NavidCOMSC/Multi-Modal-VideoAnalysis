@@ -1,7 +1,7 @@
 """Module for video-based LLM inference using Gemini 2.5 Pro via LiteLLM.
 
 Supports both crash analysis and the scene description pipeline that captures
-all detected objects, environmental conditions, and rich event metadata (including
+all detected objects, environmental conditions, and rich event metadata(inlcuding
 forensic-level crash details).
 
 Async optimisations
@@ -10,8 +10,8 @@ Async optimisations
   via ``asyncio.to_thread`` so the event loop is never blocked by disk reads.
 - Multi-camera payloads are built concurrently with ``asyncio.gather``.
 - A public ``analyse_scene_footage_batch`` method processes multiple independent
-  camera sources in parallel, guarded by an ``asyncio.Semaphore`` to cap
-  concurrent LLM requests.
+  camera sources in parallel, guarded by an ``asyncio.Semaphore`` to cap concurrent
+  LLM requests.
 """
 
 import litellm
@@ -27,12 +27,10 @@ from langfuse.model import TextPromptClient
 from langfuse_schema import ObservationPayload
 from use_case_config.metadata import MetadataTemplate
 from schema.video import (
-    # Original crash-only models (backward compatibility)
     VideoAgentTemplate,
     VideoAnalysisOutput,
     CrashEvent,
     CameraSource,
-    # Extended scene-description models
     DetectedObject,
     CrashInvolvedParty,
     WitnessedCrashDetail,
@@ -60,6 +58,7 @@ _VIDEO_MIME_TYPES = {
 
 # Default ceiling for concurrent LLM requests in batch methods
 _DEFAULT_MAX_CONCURRENT_REQUESTS = 3
+
 
 # ── System prompts ────────────────────────────────────────────────────
 
@@ -90,7 +89,7 @@ _SCENE_ANALYSIS_SYSTEM_PROMPT = (
 
 
 class VideoLLM:
-    """Async wrapper around LiteLLM for video-based analysis with Langfuse instrumentation.
+    """Async wrapper around LiteLLM for video-based crash detection with Langfuse instrumentation.
 
     Responsibilities:
     - Configure LiteLLM global settings from a MetadataTemplate instance.
@@ -100,7 +99,6 @@ class VideoLLM:
     - Log inputs/outputs and usage statistics to Langfuse.
 
     Three public analysis methods are provided:
-
     - ``analyse_crash_footage``: Original crash-only detection returning
       ``VideoAnalysisOutput`` (retained for backward compatibility).
     - ``analyse_scene_footage``: Full scene description returning
@@ -140,9 +138,7 @@ class VideoLLM:
         litellm.api_version = self.llm_agent.api_version
         litellm.suppress_debug_info = True
 
-    # ══════════════════════════════════════════════════════════════════
     # Async file I/O helpers
-    # ══════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _encode_video_to_base64_sync(video_path: str) -> str:
@@ -209,9 +205,7 @@ class VideoLLM:
         """
         path = Path(source.video_file_name)
         if not path.exists():
-            raise FileNotFoundError(
-                f"Video file not found: {source.video_file_name}"
-            )
+            raise FileNotFoundError(f"Video file not found: {source.video_file_name}")
 
         ext = path.suffix.lstrip(".").lower()
         if ext not in supported_formats:
@@ -227,9 +221,7 @@ class VideoLLM:
                 f"exceeding limit of {max_video_size_mb} MB."
             )
 
-    async def _validate_video_sources(
-        self, camera_sources: list[CameraSource]
-    ) -> None:
+    async def _validate_video_sources(self, camera_sources: list[CameraSource]) -> None:
         """Validate all video sources concurrently.
 
         Each source's existence, format, and size check is offloaded to the
@@ -257,9 +249,7 @@ class VideoLLM:
 
     # ── Payload construction ──────────────────────────────────────────
 
-    async def _build_single_source_parts(
-        self, source: CameraSource
-    ) -> list[dict]:
+    async def _build_single_source_parts(self, source: CameraSource) -> list[dict]:
         """Encode one camera source and return its content-part dicts.
 
         Parameters:
@@ -309,9 +299,7 @@ class VideoLLM:
             parts.extend(pair)
         return parts
 
-    # ══════════════════════════════════════════════════════════════════
-    # LLM call + Langfuse instrumentation (shared)
-    # ══════════════════════════════════════════════════════════════════
+    # ── LLM call + Langfuse instrumentation (shared) ──────────────────
 
     async def _call_llm(
         self,
@@ -342,8 +330,9 @@ class VideoLLM:
             A tuple of (parsed_json_dict, model_name_str).
 
         Raises:
+            FileNotFoundError: If any video file is missing.
+            ValueError: If video size/format constraints are violated.
             TypeError: If the response is not a ModelResponse.
-            ValueError: If the response contains no choices or empty content.
             Exception: Re-raises any exception from litellm.acompletion.
         """
         if temperature is None:
@@ -385,6 +374,7 @@ class VideoLLM:
 
             response: ModelResponse = raw_response
 
+            # Validate choices exist
             if not response.choices:
                 err_msg = "LLM returned no choices."
                 generation.update(level="ERROR", status_message=err_msg)
@@ -392,12 +382,14 @@ class VideoLLM:
 
             first_choice = response.choices[0]
 
+            # choices[0] could be StreamingChoices; guard for the non-streaming type
             chat_response: str | None = getattr(
                 getattr(first_choice, "message", None), "content", None
             )
             model_name: str = response.model or "unknown"
             usage = getattr(response, "usage", None)
 
+            # Guard against None or empty content
             if not chat_response:
                 err_msg = "LLM returned empty or null content."
                 generation.update(level="ERROR", status_message=err_msg)
@@ -451,18 +443,30 @@ class VideoLLM:
 
         return parsed, model_name
 
-    # ══════════════════════════════════════════════════════════════════
-    # Response parsing helpers
-    # ══════════════════════════════════════════════════════════════════
+    # ── Response parsing helpers ──────────────────────────────────────
 
     @staticmethod
     def _parse_crash_events(parsed: dict) -> list[CrashEvent]:
-        """Parse crash events from the raw JSON into CrashEvent models."""
+        """Parse crash events from the raw JSON into CrashEvent models.
+
+        Parameters:
+            parsed: Raw parsed JSON dict from the LLM response.
+
+        Returns:
+            List of CrashEvent instances.
+        """
         return [CrashEvent(**event) for event in parsed.get("crash_events", [])]
 
     @staticmethod
     def _parse_environment(parsed: dict) -> EnvironmentContext | None:
-        """Parse environmental context from the raw JSON."""
+        """Parse environmental context from the raw JSON.
+
+        Parameters:
+            parsed: Raw parsed JSON dict from the LLM response.
+
+        Returns:
+            An EnvironmentContext instance, or None if not present.
+        """
         env_raw = parsed.get("environment")
         if env_raw and isinstance(env_raw, dict):
             return EnvironmentContext(**env_raw)
@@ -470,7 +474,14 @@ class VideoLLM:
 
     @staticmethod
     def _parse_detected_objects(parsed: dict) -> list[DetectedObject]:
-        """Parse detected objects from the raw JSON."""
+        """Parse detected objects from the raw JSON.
+
+        Parameters:
+            parsed: Raw parsed JSON dict from the LLM response.
+
+        Returns:
+            List of DetectedObject instances.
+        """
         return [DetectedObject(**obj) for obj in parsed.get("detected_objects", [])]
 
     @staticmethod
@@ -480,10 +491,17 @@ class VideoLLM:
         For events with ``event_type`` of ``'collision'`` or ``'near_miss'``,
         the nested ``witnessed_crash_detail`` object is hydrated into
         ``WitnessedCrashDetail`` (with its own ``CrashInvolvedParty`` list).
+
+        Parameters:
+            parsed: Raw parsed JSON dict from the LLM response.
+
+        Returns:
+            List of SceneEvent instances.
         """
         events: list[SceneEvent] = []
 
         for evt_raw in parsed.get("events", []):
+            # Work on a copy to avoid mutating the raw_output reference
             evt_data = dict(evt_raw)
             crash_detail_raw = evt_data.pop("witnessed_crash_detail", None)
 
@@ -500,9 +518,7 @@ class VideoLLM:
 
         return events
 
-    # ══════════════════════════════════════════════════════════════════
-    # Public analysis methods
-    # ══════════════════════════════════════════════════════════════════
+    # ── Public analysis methods ───────────────────────────────────────
 
     async def analyse_crash_footage(
         self,
@@ -517,23 +533,36 @@ class VideoLLM:
     ) -> VideoAnalysisOutput:
         """Analyse one or more video files to detect crash timestamps.
 
+        Sends a multimodal request containing video data and a text prompt to
+        Gemini 2.5 Pro via LiteLLM. The model is instructed to return structured
+        JSON with crash event timestamps and descriptions.
+
         .. note::
-            Retained for backward compatibility with the crash-only pipeline.
-            For richer scene-level analysis, use :meth:`analyse_scene_footage`.
+            This method is retained for backward compatibility with the
+            crash-only pipeline. For richer scene-level analysis, use
+            :meth:`analyse_scene_footage` instead.
 
         Parameters:
             camera_sources: List of CameraSource objects describing each video.
-            prompt_text: The fully rendered prompt for crash detection.
+            prompt_text: The fully rendered prompt instructing the model on the
+                         crash detection task.
             prompt_object: Langfuse prompt object for tracing lineage.
-            task_name: Logical label for this generation.
+            task_name: Logical label for this generation (e.g. 'crash_detection').
             temperature: Sampling temperature override.
             reasoning_effort: Reasoning effort level override.
 
         Returns:
             VideoAnalysisOutput containing detected crash events and summary.
+
+        Raises:
+            FileNotFoundError: If any video file is missing.
+            ValueError: If video size/format constraints are violated.
+            TypeError: If the response is not a ModelResponse.
+            Exception: Re-raises any exception from litellm.acompletion.
         """
         await self._validate_video_sources(camera_sources)
 
+        # Build multimodal message content
         video_parts = await self._build_video_content_parts(camera_sources)
         video_parts.append({"type": "text", "text": prompt_text})
 
@@ -553,12 +582,14 @@ class VideoLLM:
 
         crash_events = self._parse_crash_events(parsed)
 
-        return VideoAnalysisOutput(
+        output = VideoAnalysisOutput(
             task_name=task_name or "video_crash_analysis",
             crash_events=crash_events,
             summary=parsed.get("summary"),
             raw_output=parsed,
         )
+
+        return output
 
     async def analyse_scene_footage(
         self,
@@ -574,20 +605,37 @@ class VideoLLM:
     ) -> VideoSceneAnalysisOutput:
         """Analyse one or more video files for full scene description.
 
+        Sends a multimodal request containing video data and a text prompt to
+        Gemini 2.5 Pro via LiteLLM. The model returns a comprehensive structured
+        JSON covering all detected objects, environmental context, and notable
+        events — including forensic-level crash details when collisions or
+        near-misses are observed.
+
         Parameters:
             camera_sources: List of CameraSource objects describing each video.
-            prompt_text: The fully rendered prompt for scene analysis.
+            prompt_text: The fully rendered prompt instructing the model on the
+                         scene analysis task.
             prompt_object: Langfuse prompt object for tracing lineage.
-            task_name: Logical label for this generation.
+            task_name: Logical label for this generation (e.g. 'scene_analysis').
             temperature: Sampling temperature override.
             reasoning_effort: Reasoning effort level override.
-            system_prompt: Optional system prompt override.
+            system_prompt: Optional system prompt override. Defaults to the
+                           built-in scene analysis system prompt.
 
         Returns:
-            VideoSceneAnalysisOutput with environment, objects, events, and summary.
+            VideoSceneAnalysisOutput containing environment context, detected
+            objects, scene events (with nested crash details where applicable),
+            and an overall summary.
+
+        Raises:
+            FileNotFoundError: If any video file is missing.
+            ValueError: If video size/format constraints are violated.
+            TypeError: If the response is not a ModelResponse.
+            Exception: Re-raises any exception from litellm.acompletion.
         """
         await self._validate_video_sources(camera_sources)
 
+        # Build multimodal message content
         video_parts = await self._build_video_content_parts(camera_sources)
         video_parts.append({"type": "text", "text": prompt_text})
 
@@ -608,10 +656,12 @@ class VideoLLM:
             reasoning_effort=reasoning_effort,
         )
 
+        # Parse each section of the response
         environment = self._parse_environment(parsed)
         detected_objects = self._parse_detected_objects(parsed)
         events = self._parse_scene_events(parsed)
 
+        # Derive camera_type and video_file_name from the first source
         primary_camera_type = camera_sources[0].camera_type if camera_sources else None
         primary_video_file = (
             Path(camera_sources[0].video_file_name).name if camera_sources else None
@@ -634,11 +684,7 @@ class VideoLLM:
             output.task_name,
             len(output.detected_objects),
             len(output.events),
-            sum(
-                1
-                for e in output.events
-                if e.event_type in ("collision", "near_miss")
-            ),
+            sum(1 for e in output.events if e.event_type in ("collision", "near_miss")),
         )
 
         return output
@@ -701,9 +747,7 @@ class VideoLLM:
             return_exceptions=return_exceptions,
         )
 
-        succeeded = sum(
-            1 for r in results if not isinstance(r, BaseException)
-        )
+        succeeded = sum(1 for r in results if not isinstance(r, BaseException))
         logger.info(
             "Batch scene analysis: %d/%d sources completed successfully.",
             succeeded,
