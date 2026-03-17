@@ -82,7 +82,7 @@ class VideoAgentTemplate(BaseModel):
     )
 
 
-class DetectedObject(BaseModel):
+class VideoObjectObservation(BaseModel):
     """A single object or road user detected in the video."""
 
     object_type: str = Field(
@@ -262,7 +262,7 @@ class VideoSceneAnalysisOutput(BaseModel):
     environment: EnvironmentContext | None = Field(
         None, description="Environmental and road context."
     )
-    detected_objects: list[DetectedObject] = Field(
+    detected_objects: list[VideoObjectObservation] = Field(
         default_factory=list, description="All objects detected in the footage."
     )
     events: list[SceneEvent] = Field(
