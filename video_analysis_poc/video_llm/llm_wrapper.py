@@ -31,7 +31,7 @@ from schema.video import (
     VideoAnalysisOutput,
     CrashEvent,
     CameraSource,
-    DetectedObject,
+    VideoObjectObservation,
     CrashInvolvedParty,
     WitnessedCrashDetail,
     SceneEvent,
@@ -69,6 +69,23 @@ _CRASH_ONLY_SYSTEM_PROMPT = (
     "road-user involvement (vehicles, pedestrians, cyclists), probable "
     "cause, and confidence per event. Include timestamps and concise "
     "descriptions, then return your findings as a JSON object."
+    "IMPORTANT ANALYSIS PRINCIPLES:\n"
+    "- Always establish CAUSAL relationships between events. If a vehicle is "
+    "stopped in an unusual location, determine what caused it to stop by "
+    "examining the preceding seconds — do NOT assume it was inexplicably "
+    "stationary without a reason.\n"
+    "- Large vehicles like trucks and HGVs have wide turning arcs that "
+    "frequently cause sideswipe collisions with adjacent vehicles on "
+    "roundabouts and tight curves. Look carefully for this pattern whenever "
+    "a truck and a smaller vehicle enter a roundabout side by side.\n"
+    "- The striking vehicle may leave the scene after a collision (hit-and-run "
+    "or scrape-and-leave). Do not assume the first vehicle you see near a "
+    "stopped car is the one that struck it — trace the timeline backwards.\n"
+    "- Do NOT confuse vehicles that arrive AFTER a collision with the vehicle "
+    "that CAUSED it. Temporal ordering is critical: establish which interaction "
+    "happened first.\n"
+    "- Still frames are provided at key timestamps alongside the video. Use "
+    "them to verify spatial relationships between vehicles at critical moments."
 )
 
 _SCENE_ANALYSIS_SYSTEM_PROMPT = (
@@ -168,7 +185,7 @@ class VideoLLM:
             return base64.b64encode(f.read()).decode("utf-8")
 
     @classmethod
-    async def _encode_video_to_base64(cls, video_path: str) -> str:
+    async def _async_encode_video_to_base64(cls, video_path: str) -> str:
         """Non-blocking base64 encoding of a video file.
 
         Offloads the blocking file read to the default thread-pool executor
@@ -221,7 +238,9 @@ class VideoLLM:
                 f"exceeding limit of {max_video_size_mb} MB."
             )
 
-    async def _validate_video_sources(self, camera_sources: list[CameraSource]) -> None:
+    async def _async_validate_video_sources(
+        self, camera_sources: list[CameraSource]
+    ) -> None:
         """Validate all video sources concurrently.
 
         Each source's existence, format, and size check is offloaded to the
@@ -249,7 +268,9 @@ class VideoLLM:
 
     # ── Payload construction ──────────────────────────────────────────
 
-    async def _build_single_source_parts(self, source: CameraSource) -> list[dict]:
+    async def _async_build_single_source_parts(
+        self, source: CameraSource
+    ) -> list[dict]:
         """Encode one camera source and return its content-part dicts.
 
         Parameters:
@@ -259,7 +280,7 @@ class VideoLLM:
             A two-element list: [text-label part, base64-video part].
         """
         mime = self._get_mime_type(source.video_file_name)
-        b64 = await self._encode_video_to_base64(source.video_file_name)
+        b64 = await self._async_encode_video_to_base64(source.video_file_name)
 
         return [
             {
@@ -277,7 +298,7 @@ class VideoLLM:
             },
         ]
 
-    async def _build_video_content_parts(
+    async def _async_build_video_content_parts(
         self, camera_sources: list[CameraSource]
     ) -> list[dict]:
         """Build multimodal content parts for the LiteLLM messages payload.
@@ -291,7 +312,7 @@ class VideoLLM:
             List of content-part dicts compatible with LiteLLM message format.
         """
         nested = await asyncio.gather(
-            *(self._build_single_source_parts(s) for s in camera_sources)
+            *(self._async_build_single_source_parts(s) for s in camera_sources)
         )
         # Flatten [[text, video], [text, video], …] → [text, video, text, video, …]
         parts: list[dict] = []
@@ -301,7 +322,7 @@ class VideoLLM:
 
     # ── LLM call + Langfuse instrumentation (shared) ──────────────────
 
-    async def _call_llm(
+    async def _async_call_llm(
         self,
         messages: list[dict],
         prompt_text: str,
@@ -470,19 +491,21 @@ class VideoLLM:
         env_raw = parsed.get("environment")
         if env_raw and isinstance(env_raw, dict):
             return EnvironmentContext(**env_raw)
-        return None
+        return print("no environment information")
 
     @staticmethod
-    def _parse_detected_objects(parsed: dict) -> list[DetectedObject]:
+    def _parse_detected_objects(parsed: dict) -> list[VideoObjectObservation]:
         """Parse detected objects from the raw JSON.
 
         Parameters:
             parsed: Raw parsed JSON dict from the LLM response.
 
         Returns:
-            List of DetectedObject instances.
+            List of VideoObjectObservation instances.
         """
-        return [DetectedObject(**obj) for obj in parsed.get("detected_objects", [])]
+        return [
+            VideoObjectObservation(**obj) for obj in parsed.get("detected_objects", [])
+        ]
 
     @staticmethod
     def _parse_scene_events(parsed: dict) -> list[SceneEvent]:
@@ -500,9 +523,9 @@ class VideoLLM:
         """
         events: list[SceneEvent] = []
 
-        for evt_raw in parsed.get("events", []):
+        for event_raw in parsed.get("events", []):
             # Work on a copy to avoid mutating the raw_output reference
-            evt_data = dict(evt_raw)
+            evt_data = dict(event_raw)
             crash_detail_raw = evt_data.pop("witnessed_crash_detail", None)
 
             crash_detail: WitnessedCrashDetail | None = None
@@ -520,7 +543,7 @@ class VideoLLM:
 
     # ── Public analysis methods ───────────────────────────────────────
 
-    async def analyse_crash_footage(
+    async def async_analyse_crash_footage(
         self,
         camera_sources: list[CameraSource],
         prompt_text: str,
@@ -560,10 +583,10 @@ class VideoLLM:
             TypeError: If the response is not a ModelResponse.
             Exception: Re-raises any exception from litellm.acompletion.
         """
-        await self._validate_video_sources(camera_sources)
+        await self._async_validate_video_sources(camera_sources)
 
         # Build multimodal message content
-        video_parts = await self._build_video_content_parts(camera_sources)
+        video_parts = await self._async_build_video_content_parts(camera_sources)
         video_parts.append({"type": "text", "text": prompt_text})
 
         messages = [
@@ -571,7 +594,7 @@ class VideoLLM:
             {"role": "user", "content": video_parts},
         ]
 
-        parsed, _ = await self._call_llm(
+        parsed, _ = await self._async_call_llm(
             messages=messages,
             prompt_text=prompt_text,
             prompt_object=prompt_object,
@@ -591,7 +614,7 @@ class VideoLLM:
 
         return output
 
-    async def analyse_scene_footage(
+    async def async_analyse_scene_footage(
         self,
         camera_sources: list[CameraSource],
         prompt_text: str,
@@ -633,10 +656,10 @@ class VideoLLM:
             TypeError: If the response is not a ModelResponse.
             Exception: Re-raises any exception from litellm.acompletion.
         """
-        await self._validate_video_sources(camera_sources)
+        await self._async_validate_video_sources(camera_sources)
 
         # Build multimodal message content
-        video_parts = await self._build_video_content_parts(camera_sources)
+        video_parts = await self._async_build_video_content_parts(camera_sources)
         video_parts.append({"type": "text", "text": prompt_text})
 
         messages = [
@@ -647,7 +670,7 @@ class VideoLLM:
             {"role": "user", "content": video_parts},
         ]
 
-        parsed, _ = await self._call_llm(
+        parsed, _ = await self._async_call_llm(
             messages=messages,
             prompt_text=prompt_text,
             prompt_object=prompt_object,
@@ -689,7 +712,7 @@ class VideoLLM:
 
         return output
 
-    async def analyse_scene_footage_batch(
+    async def async_analyse_scene_footage_batch(
         self,
         camera_sources: list[CameraSource],
         prompt_text: str,
@@ -705,7 +728,7 @@ class VideoLLM:
         """Analyse each camera source independently and concurrently.
 
         Each ``CameraSource`` is submitted as a separate
-        ``analyse_scene_footage`` call.  An ``asyncio.Semaphore`` (configured
+        ``async_analyse_scene_footage`` call.  An ``asyncio.Semaphore`` (configured
         via the constructor's ``max_concurrent_requests``) limits how many
         LLM requests are in-flight at once, preventing rate-limit exhaustion.
 
@@ -728,11 +751,13 @@ class VideoLLM:
             ``True``, failed entries are ``BaseException`` instances.
         """
 
-        async def _guarded_analyse(source: CameraSource) -> VideoSceneAnalysisOutput:
+        async def _async_guarded_analyse(
+            source: CameraSource,
+        ) -> VideoSceneAnalysisOutput:
             """Run a single analysis under the semaphore."""
             async with self._semaphore:
                 suffix = f"_{source.camera_type}" if task_name else ""
-                return await self.analyse_scene_footage(
+                return await self.async_analyse_scene_footage(
                     camera_sources=[source],
                     prompt_text=prompt_text,
                     prompt_object=prompt_object,
@@ -743,7 +768,7 @@ class VideoLLM:
                 )
 
         results = await asyncio.gather(
-            *(_guarded_analyse(src) for src in camera_sources),
+            *(_async_guarded_analyse(src) for src in camera_sources),
             return_exceptions=return_exceptions,
         )
 
