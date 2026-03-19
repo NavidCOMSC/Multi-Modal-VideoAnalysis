@@ -1,0 +1,201 @@
+{
+  "task_name": "video_scene_analysis_kg_rag",
+  "camera_type": "dashcam_front",
+  "video_file_name": "Inbound_CHO_Dashcam_20-50-780086.mp4",
+  "environment": {
+    "weather": "Cloudy",
+    "lighting": "Daylight",
+    "road_type": "Multi-lane roundabout",
+    "road_surface": "Dry asphalt",
+    "traffic_density": "Moderate",
+    "additional_notes": "The road markings indicate two lanes entering and circulating the roundabout."
+  },
+  "detected_objects": [
+    {
+      "object_type": "HGV",
+      "description": "Green Yodel truck (striking vehicle)",
+      "first_seen_seconds": 5.0,
+      "last_seen_seconds": 25.0,
+      "position_in_frame": "Center, then left",
+      "confidence": 1.0
+    },
+    {
+      "object_type": "SUV",
+      "description": "Black SUV (victim vehicle)",
+      "first_seen_seconds": 8.0,
+      "last_seen_seconds": 46.0,
+      "position_in_frame": "Center-right",
+      "confidence": 1.0
+    },
+    {
+      "object_type": "Van",
+      "description": "White van",
+      "first_seen_seconds": 25.0,
+      "last_seen_seconds": 51.0,
+      "position_in_frame": "Left",
+      "confidence": 0.9
+    },
+    {
+      "object_type": "Car",
+      "description": "White Toyota Yaris hatchback",
+      "first_seen_seconds": 30.0,
+      "last_seen_seconds": 36.0,
+      "position_in_frame": "Center-right",
+      "confidence": 0.9
+    },
+    {
+      "object_type": "SUV",
+      "description": "Red SUV",
+      "first_seen_seconds": 37.0,
+      "last_seen_seconds": 45.0,
+      "position_in_frame": "Center-right, then left",
+      "confidence": 0.9
+    }
+  ],
+  "events": [
+    {
+      "event_type": "Collision",
+      "timestamp_seconds": 17.0,
+      "timestamp_display": "13:48:06",
+      "description": "A green HGV, while navigating a roundabout, sideswipes a black SUV in the adjacent inner lane with its trailer. The HGV then leaves the scene without stopping.",
+      "involved_objects": [
+        "Green Yodel truck (striking vehicle)",
+        "Black SUV (victim vehicle)"
+      ],
+      "severity": "Minor",
+      "confidence": 1.0,
+      "witnessed_crash_detail": {
+        "impact_type": "Sideswipe",
+        "involved_parties": [
+          {
+            "road_user_type": "HGV",
+            "description": "Green Yodel truck",
+            "action_before_event": "Navigating the outer lane of a roundabout.",
+            "action_after_event": "Continued driving without stopping, leaving the scene of the collision.",
+            "apparent_damage": "Unknown"
+          },
+          {
+            "road_user_type": "SUV",
+            "description": "Black SUV",
+            "action_before_event": "Navigating the inner lane of a roundabout, alongside the HGV.",
+            "action_after_event": "Came to an immediate and complete stop in the lane after being struck.",
+            "apparent_damage": "Probable damage to the driver's side (right side from camera's perspective)."
+          }
+        ],
+        "probable_cause": "The HGV's trailer encroached into the adjacent lane due to its wide turning arc (off-tracking), striking the SUV that was legally occupying that lane.",
+        "fault_indicators": [
+          "Failure to maintain lane",
+          "Leaving the scene of an accident",
+          "Unsafe turn for vehicle size"
+        ],
+        "sequence_of_events": "The HGV and SUV enter the roundabout in parallel lanes. As they proceed through the curve, the rear of the HGV's trailer swings into the SUV's path, causing a sideswipe impact. The SUV stops, and the HGV continues on its way.",
+        "post_crash_actions": "The driver of the black SUV stopped their vehicle in the lane of travel. The driver of the green HGV failed to stop and left the scene.",
+        "estimated_speed_range": "Low (10-20 mph)",
+        "dashcam_vehicle_involved": false
+      }
+    }
+  ],
+  "summary": "A green Yodel HGV sideswiped a black SUV on a roundabout. The truck's trailer swung wide during the turn, encroaching on the inner lane and striking the SUV. The SUV stopped immediately following the impact, while the HGV continued without stopping, leaving the scene of the collision.",
+  "raw_output": {
+    "reasoning_trace": {
+      "global_perception": "The dashcam vehicle approaches a multi-lane roundabout behind a green HGV and a black SUV. The scene is a typical traffic interaction that escalates into a collision and a subsequent hit-and-run.",
+      "vehicle_inventory": "V1: Green Yodel HGV. V2: Black SUV (Kia Niro). V3: White van. V4: White hatchback. V5: Red SUV. Ego-vehicle: Dashcam car. V1 and V2 are the primary actors. V3, V4, and V5 are later arrivals navigating the post-incident scene.",
+      "interaction_analysis": "V1 (HGV) and V2 (SUV) enter the roundabout in adjacent lanes (V1 outer, V2 inner). As V1 turns, its trailer exhibits significant off-tracking, swinging into V2's lane. At approximately 00:17, the trailer makes contact with the driver's side of V2. Immediately following this interaction, V2 comes to a complete stop in its lane at 00:19. V1 continues its path around the roundabout and exits without stopping or slowing down. Subsequent vehicles are seen maneuvering around the stationary V2.",
+      "causal_conclusion": "This is a sideswipe collision caused by the HGV's wide turning arc encroaching on the adjacent lane occupied by the SUV. The SUV's sudden stop is a direct result of being struck. The HGV's failure to stop constitutes a hit-and-run (or scrape-and-leave). The event matches the 'HGV Sideswipe on Roundabout' and 'Hit-and-Run' domain expertise patterns. The later-arriving vehicles are not involved in the cause of the stop."
+    },
+    "environment": {
+      "weather": "Cloudy",
+      "lighting": "Daylight",
+      "road_type": "Multi-lane roundabout",
+      "road_surface": "Dry asphalt",
+      "traffic_density": "Moderate",
+      "additional_notes": "The road markings indicate two lanes entering and circulating the roundabout."
+    },
+    "detected_objects": [
+      {
+        "object_type": "HGV",
+        "description": "Green Yodel truck (striking vehicle)",
+        "first_seen_seconds": 5.0,
+        "last_seen_seconds": 25.0,
+        "position_in_frame": "Center, then left",
+        "confidence": 1.0
+      },
+      {
+        "object_type": "SUV",
+        "description": "Black SUV (victim vehicle)",
+        "first_seen_seconds": 8.0,
+        "last_seen_seconds": 46.0,
+        "position_in_frame": "Center-right",
+        "confidence": 1.0
+      },
+      {
+        "object_type": "Van",
+        "description": "White van",
+        "first_seen_seconds": 25.0,
+        "last_seen_seconds": 51.0,
+        "position_in_frame": "Left",
+        "confidence": 0.9
+      },
+      {
+        "object_type": "Car",
+        "description": "White Toyota Yaris hatchback",
+        "first_seen_seconds": 30.0,
+        "last_seen_seconds": 36.0,
+        "position_in_frame": "Center-right",
+        "confidence": 0.9
+      },
+      {
+        "object_type": "SUV",
+        "description": "Red SUV",
+        "first_seen_seconds": 37.0,
+        "last_seen_seconds": 45.0,
+        "position_in_frame": "Center-right, then left",
+        "confidence": 0.9
+      }
+    ],
+    "events": [
+      {
+        "event_type": "Collision",
+        "timestamp_seconds": 17.0,
+        "timestamp_display": "13:48:06",
+        "description": "A green HGV, while navigating a roundabout, sideswipes a black SUV in the adjacent inner lane with its trailer. The HGV then leaves the scene without stopping.",
+        "involved_objects": [
+          "Green Yodel truck (striking vehicle)",
+          "Black SUV (victim vehicle)"
+        ],
+        "severity": "Minor",
+        "confidence": 1.0,
+        "witnessed_crash_detail": {
+          "impact_type": "Sideswipe",
+          "involved_parties": [
+            {
+              "road_user_type": "HGV",
+              "description": "Green Yodel truck",
+              "action_before_event": "Navigating the outer lane of a roundabout.",
+              "action_after_event": "Continued driving without stopping, leaving the scene of the collision.",
+              "apparent_damage": "Unknown"
+            },
+            {
+              "road_user_type": "SUV",
+              "description": "Black SUV",
+              "action_before_event": "Navigating the inner lane of a roundabout, alongside the HGV.",
+              "action_after_event": "Came to an immediate and complete stop in the lane after being struck.",
+              "apparent_damage": "Probable damage to the driver's side (right side from camera's perspective)."
+            }
+          ],
+          "probable_cause": "The HGV's trailer encroached into the adjacent lane due to its wide turning arc (off-tracking), striking the SUV that was legally occupying that lane.",
+          "fault_indicators": [
+            "Failure to maintain lane",
+            "Leaving the scene of an accident",
+            "Unsafe turn for vehicle size"
+          ],
+          "sequence_of_events": "The HGV and SUV enter the roundabout in parallel lanes. As they proceed through the curve, the rear of the HGV's trailer swings into the SUV's path, causing a sideswipe impact. The SUV stops, and the HGV continues on its way.",
+          "post_crash_actions": "The driver of the black SUV stopped their vehicle in the lane of travel. The driver of the green HGV failed to stop and left the scene.",
+          "estimated_speed_range": "Low (10-20 mph)",
+          "dashcam_vehicle_involved": false
+        }
+      }
+    ],
+    "summary": "A green Yodel HGV sideswiped a black SUV on a roundabout. The truck's trailer swung wide during the turn, encroaching on the inner lane and striking the SUV. The SUV stopped immediately following the impact, while the HGV continued without stopping, leaving the scene of the collision."
+  }
+}
