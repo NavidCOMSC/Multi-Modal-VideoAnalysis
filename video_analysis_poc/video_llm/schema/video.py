@@ -1,7 +1,19 @@
-"""Pydantic models for video analysis agents."""
+"""Pydantic models for video analysis agents.
+
+This module defines the complete schema hierarchy for both crash-only
+and full scene analysis pipelines, including:
+
+- ``CameraSource`` / ``VideoAgentTemplate`` — input configuration
+- ``CrashEvent`` / ``VideoAnalysisOutput`` — crash-only pipeline output
+- ``VideoObjectObservation`` / ``SceneEvent`` / ``VideoSceneAnalysisOutput``
+  — full scene analysis output with forensic crash details
+- ``ReasoningTrace`` — chain-of-thought trace for KG-augmented analysis
+"""
+
+from __future__ import annotations
 
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Any, Literal
 
 
 class CameraSource(BaseModel):
@@ -128,15 +140,15 @@ class CrashInvolvedParty(BaseModel):
     )
     action_before_event: str | None = Field(
         None,
-        description="What this party was doing immediately before the event, e.g. 'turning left', 'stationary', 'accelerating'.",
+        description="What this party was doing immediately before the event.",
     )
     action_after_event: str | None = Field(
         None,
-        description="What this party did after the event, e.g. 'stopped', 'continued driving', 'pulled over'.",
+        description="What this party did after the event.",
     )
     apparent_damage: str | None = Field(
         None,
-        description="Visible damage if any, e.g. 'front bumper dented', 'windshield cracked', 'none visible'.",
+        description="Visible damage if any, e.g. 'front bumper dented', 'none visible'.",
     )
 
 
@@ -160,11 +172,11 @@ class WitnessedCrashDetail(BaseModel):
     )
     probable_cause: str | None = Field(
         None,
-        description="Best assessment of the primary cause, e.g. 'failure to yield', 'distracted driving', 'running red light'.",
+        description="Best assessment of the primary cause.",
     )
     fault_indicators: list[str] = Field(
         default_factory=list,
-        description="Observable cues suggesting fault, e.g. 'ran red light', 'crossed centre line', 'excessive speed'.",
+        description="Observable cues suggesting fault.",
     )
     sequence_of_events: str | None = Field(
         None,
@@ -172,15 +184,15 @@ class WitnessedCrashDetail(BaseModel):
     )
     post_crash_actions: str | None = Field(
         None,
-        description="What happened after the crash: vehicles stopping, emergency response, debris on road, etc.",
+        description="What happened after the crash.",
     )
     estimated_speed_range: str | None = Field(
         None,
-        description="Rough speed estimate if inferable, e.g. 'low (< 20 mph)', 'moderate (20-40 mph)', 'high (> 40 mph)'.",
+        description="Rough speed estimate if inferable.",
     )
     dashcam_vehicle_involved: bool = Field(
         default=False,
-        description="True if the dashcam's own vehicle was involved in the crash; False if it was a bystander witness.",
+        description="True if the dashcam's own vehicle was involved in the crash.",
     )
 
 
@@ -209,7 +221,7 @@ class SceneEvent(BaseModel):
     )
     severity: str | None = Field(
         None,
-        description="Severity or significance: 'low', 'medium', 'high', or None if not applicable.",
+        description="Severity or significance: 'low', 'medium', 'high', or None.",
     )
     confidence: float = Field(
         ..., ge=0.0, le=1.0, description="Model confidence for this event."
@@ -218,8 +230,7 @@ class SceneEvent(BaseModel):
         None,
         description=(
             "Populated ONLY when event_type is 'collision' or 'near_miss'. "
-            "Contains rich crash-specific metadata: impact type, involved parties, "
-            "probable cause, fault indicators, and post-crash actions."
+            "Contains rich crash-specific metadata."
         ),
     )
 
@@ -227,32 +238,44 @@ class SceneEvent(BaseModel):
 class EnvironmentContext(BaseModel):
     """High-level environmental and road context."""
 
-    weather: str | None = Field(
-        None,
-        description="Observed weather: 'clear', 'rain', 'fog', 'snow', 'overcast', etc.",
-    )
-    lighting: str | None = Field(
-        None,
-        description="Lighting conditions: 'daylight', 'dusk', 'night', 'artificial', etc.",
-    )
-    road_type: str | None = Field(
-        None,
-        description="Road type: 'motorway', 'urban', 'suburban', 'rural', 'roundabout', etc.",
-    )
-    road_surface: str | None = Field(
-        None, description="Surface condition: 'dry', 'wet', 'icy', 'gravel', etc."
-    )
-    traffic_density: str | None = Field(
-        None,
-        description="Traffic level: 'empty', 'light', 'moderate', 'heavy', 'congested'.",
-    )
+    weather: str | None = Field(None, description="Observed weather.")
+    lighting: str | None = Field(None, description="Lighting conditions.")
+    road_type: str | None = Field(None, description="Road type.")
+    road_surface: str | None = Field(None, description="Surface condition.")
+    traffic_density: str | None = Field(None, description="Traffic level.")
     additional_notes: str | None = Field(
         None, description="Any other environmental observations."
     )
 
 
+class ReasoningTrace(BaseModel):
+    """Structured chain-of-thought reasoning trace.
+
+    Populated by the LLM *before* the main scene-analysis output when
+    using the KG-augmented pipeline.  Forces a perception-to-cognition
+    chain that makes causal reasoning explicit.
+    """
+
+    global_perception: str = Field(
+        ..., description="Scene-level observations."
+    )
+    vehicle_inventory: str = Field(
+        ..., description="All vehicles with IDs and descriptions."
+    )
+    interaction_analysis: str = Field(
+        ..., description="Vehicle interaction analysis."
+    )
+    causal_conclusion: str = Field(
+        ..., description="Final causal attribution with temporal evidence."
+    )
+
+
 class VideoSceneAnalysisOutput(BaseModel):
-    """Structured output from full video scene analysis."""
+    """Structured output from full video scene analysis.
+
+    When using the KG-augmented pipeline, the ``reasoning_trace`` field
+    is populated with the model's explicit chain-of-thought reasoning.
+    """
 
     task_name: str | None = Field(
         None, description="Logical label for this analysis run."
@@ -270,6 +293,13 @@ class VideoSceneAnalysisOutput(BaseModel):
     )
     summary: str | None = Field(
         None, description="Overall narrative summary of the footage."
+    )
+    reasoning_trace: ReasoningTrace | None = Field(
+        None,
+        description=(
+            "Chain-of-thought reasoning trace from the KG-augmented pipeline. "
+            "None when using the basic (non-KG) analysis path."
+        ),
     )
     raw_output: dict | None = Field(
         None, description="Raw parsed JSON output from the model."

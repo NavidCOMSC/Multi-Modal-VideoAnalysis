@@ -8,6 +8,7 @@ from .video import (
     WitnessedCrashDetail,
     SceneEvent,
     EnvironmentContext,
+    ReasoningTrace,
     VideoSceneAnalysisOutput,
 )
 
@@ -21,5 +22,6 @@ __all__ = [
     "WitnessedCrashDetail",
     "SceneEvent",
     "EnvironmentContext",
+    "ReasoningTrace",
     "VideoSceneAnalysisOutput",
 ]
