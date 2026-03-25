@@ -11,7 +11,7 @@ Provides three orchestration functions:
 from __future__ import annotations
 
 import logging
-from typing import List, Literal
+from typing import List
 
 from langfuse import Langfuse
 
@@ -177,7 +177,6 @@ async def execute_video_scene_analysis_kg_stage(
     run_verification_pass: bool = True,
     jurisdiction: str = "UK",
     user_query: str | None = None,
-    **prompt_kwargs,
 ) -> VideoSceneAnalysisOutput:
     """Execute KG-augmented two-pass video scene analysis.
 
@@ -192,6 +191,14 @@ async def execute_video_scene_analysis_kg_stage(
 
     If no ``knowledge_graph`` is provided, the default embedded KG is used
     (5 collision patterns, 4 UK regulations, typed vehicle/road nodes).
+
+    .. note::
+        Unlike ``execute_video_analysis_stage`` and
+        ``execute_video_scene_analysis_stage``, this method does **not**
+        accept ``**prompt_kwargs`` because it bypasses Langfuse
+        ``collate_prompt`` — prompts are composed programmatically by
+        ``PromptComposer`` from KG retrieval results.  Use ``user_query``
+        to inject incident-specific instructions.
 
     Args:
         metadata_instance: Use case metadata containing LLM configuration.
@@ -209,8 +216,9 @@ async def execute_video_scene_analysis_kg_stage(
             the default embedded graph is built.
         run_verification_pass: Whether to run Pass 2 verification (default True).
         jurisdiction: Jurisdiction for regulation retrieval (default ``"UK"``).
-        user_query: Optional user query/instruction.
-        **prompt_kwargs: Additional prompt template arguments.
+        user_query: Optional incident-specific instruction to augment
+            the KG-composed prompt (e.g. ``"Focus on the truck and SUV
+            interaction at 15-20s"``).
 
     Returns:
         VideoSceneAnalysisOutput with reasoning trace, environment, objects,
@@ -237,6 +245,7 @@ async def execute_video_scene_analysis_kg_stage(
         reasoning_effort=video_agent.reasoning_effort,
         run_verification_pass=run_verification_pass,
         jurisdiction=jurisdiction,
+        user_query=user_query,
     )
 
     n_crash = sum(

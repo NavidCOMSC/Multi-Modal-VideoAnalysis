@@ -157,8 +157,14 @@ class PromptComposer:
 
         return "\n".join(parts)
 
-    def build_task_prompt(self) -> str:
+    def build_task_prompt(self, user_query: str | None = None) -> str:
         """Compose the task prompt with RAG context, schema, and instructions.
+
+        Parameters:
+            user_query: Optional incident-specific instruction from the caller
+                (e.g. ``"Focus on the interaction between the truck and the
+                black SUV at 15-20s"``).  Appended after the schema and
+                instructions so the model treats it as additional guidance.
 
         Returns:
             The complete task prompt string.
@@ -183,6 +189,10 @@ class PromptComposer:
         parts.append(_OUTPUT_SCHEMA)
         parts.append("")
         parts.append(_TASK_INSTRUCTIONS)
+
+        if user_query:
+            parts.append("")
+            parts.append(f"ADDITIONAL CONTEXT FROM THE USER:\n{user_query}")
 
         return "\n".join(parts)
 

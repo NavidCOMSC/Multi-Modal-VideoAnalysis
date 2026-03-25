@@ -537,6 +537,7 @@ class VideoLLM:
         ) = None,
         run_verification_pass: bool = True,
         jurisdiction: str = "UK",
+        user_query: str | None = None,
     ) -> VideoSceneAnalysisOutput:
         """KG-augmented two-pass scene analysis with chain-of-thought reasoning.
 
@@ -562,6 +563,9 @@ class VideoLLM:
             reasoning_effort: Reasoning effort level override.
             run_verification_pass: Whether to run Pass 2 verification.
             jurisdiction: Jurisdiction for regulation retrieval.
+            user_query: Optional incident-specific instruction to augment the
+                KG-composed prompt (e.g. ``"Focus on the truck and SUV
+                interaction at 15-20s"``).
 
         Returns:
             VideoSceneAnalysisOutput with reasoning trace and verified events.
@@ -592,7 +596,7 @@ class VideoLLM:
             regulations=regulations,
         )
         system_prompt = composer.build_system_prompt()
-        task_prompt = composer.build_task_prompt()
+        task_prompt = composer.build_task_prompt(user_query=user_query)
 
         # Step 4: Build multimodal payload
         video_parts = await self._async_build_video_content_parts(camera_sources)
