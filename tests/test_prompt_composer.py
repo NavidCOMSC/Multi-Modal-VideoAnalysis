@@ -149,3 +149,16 @@ class TestPromptComposer:
         annotation = composer.build_keyframe_annotation(17.0)
         assert "17s" in annotation
         assert "STILL FRAME" in annotation
+
+    def test_task_prompt_includes_user_query(self, scored_patterns):
+        composer = PromptComposer(scored_patterns=scored_patterns)
+        prompt = composer.build_task_prompt(
+            user_query="Focus on the truck and SUV interaction at 15-20s"
+        )
+        assert "ADDITIONAL CONTEXT FROM THE USER" in prompt
+        assert "Focus on the truck and SUV interaction" in prompt
+
+    def test_task_prompt_omits_user_query_section_when_none(self, scored_patterns):
+        composer = PromptComposer(scored_patterns=scored_patterns)
+        prompt = composer.build_task_prompt(user_query=None)
+        assert "ADDITIONAL CONTEXT FROM THE USER" not in prompt
