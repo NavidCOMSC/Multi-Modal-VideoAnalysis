@@ -1,4 +1,5 @@
-"""Computer vision pre-processing for video analysis.
+"""
+Computer vision pre-processing for video analysis.
 
 This module provides:
 - ``CameraProfileDetector``: Optical-flow-based camera motion classification
@@ -12,6 +13,7 @@ from video_analysis_poc.video_llm.cv_preprocessing.camera_detection import (
     CameraProfile,
     CameraProfileDetector,
 )
+
 from video_analysis_poc.video_llm.cv_preprocessing.keyframe_extraction import (
     KeyFrame,
     KeyFrameExtractor,

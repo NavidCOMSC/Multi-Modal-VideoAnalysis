@@ -24,13 +24,6 @@ from typing import Any
 
 import networkx as nx
 
-from video_analysis_poc.video_llm.knowledge_graph.models import (
-    CollisionPattern,
-    TrafficRegulation,
-    VehicleTypeNode,
-    RoadGeometryNode,
-)
-
 logger = logging.getLogger(__name__)
 
 # ── Default KG seed data ─────────────────────────────────────────────
@@ -81,7 +74,14 @@ _DEFAULT_KG_DATA: dict[str, Any] = {
             ],
             "vehicle_types": ["truck", "car"],
             "road_types": ["roundabout"],
-            "keywords": ["sideswipe", "swept path", "roundabout", "truck", "HGV", "scrape"],
+            "keywords": [
+                "sideswipe",
+                "swept path",
+                "roundabout",
+                "truck",
+                "HGV",
+                "scrape",
+            ],
             "example_narrative": (
                 "A green Yodel truck and black SUV approach a multi-lane roundabout. "
                 "Truck in outer lane, SUV in inner lane. Both enter at ~15s. Between "
@@ -420,9 +420,7 @@ class CollisionKnowledgeGraph:
             if d.get("node_type") == "regulation"
         ]
 
-    def successors_by_relation(
-        self, node_id: str, relation: str
-    ) -> list[str]:
+    def successors_by_relation(self, node_id: str, relation: str) -> list[str]:
         """Return successor node IDs filtered by edge relation type."""
         return [
             n

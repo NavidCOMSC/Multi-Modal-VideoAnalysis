@@ -1,4 +1,5 @@
-"""Prompt-ready formatting of KG retrieval results.
+"""
+Prompt-ready formatting of KG retrieval results.
 
 ``format_rag_context`` converts scored collision patterns and traffic
 regulations into a structured text block suitable for injection into an

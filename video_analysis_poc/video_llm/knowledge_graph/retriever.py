@@ -13,7 +13,7 @@ Scoring heuristic (configurable via constructor weights):
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from video_analysis_poc.video_llm.knowledge_graph.graph import (
     CollisionKnowledgeGraph,

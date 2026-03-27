@@ -1,4 +1,5 @@
-"""Key frame extraction at critical timestamps.
+"""
+Key frame extraction at critical timestamps.
 
 Extracts and base64-encodes still images from a video at specified
 timestamps.  These frames supplement the full video in the LLM payload,
@@ -123,6 +124,4 @@ class KeyFrameExtractor:
         Returns:
             List of ``KeyFrame`` instances (in timestamp order).
         """
-        return await asyncio.to_thread(
-            self._extract_sync, Path(video_path), timestamps
-        )
+        return await asyncio.to_thread(self._extract_sync, Path(video_path), timestamps)

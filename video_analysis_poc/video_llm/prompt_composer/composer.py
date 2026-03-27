@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
 
 from video_analysis_poc.video_llm.cv_preprocessing.camera_detection import (
     CameraProfile,
@@ -161,10 +160,10 @@ class PromptComposer:
         """Compose the task prompt with RAG context, schema, and instructions.
 
         Parameters:
-            user_query: Optional incident-specific instruction from the caller
-                (e.g. ``"Focus on the interaction between the truck and the
-                black SUV at 15-20s"``).  Appended after the schema and
-                instructions so the model treats it as additional guidance.
+            user_query: Optional incident-specific query or instruction from the caller
+            (e.g. ``"Focus on the interaction between the truck and the black SUV at 15-
+            20s."``). Append after the schema and instructions so the model treats it as
+            additional guidance.
 
         Returns:
             The complete task prompt string.
@@ -173,18 +172,14 @@ class PromptComposer:
 
         # RAG context from knowledge graph
         if self._scored_patterns or self._regulations:
-            rag_text = format_rag_context(
-                self._scored_patterns, self._regulations
-            )
+            rag_text = format_rag_context(self._scored_patterns, self._regulations)
             parts.append(rag_text)
             parts.append("\n---\n")
 
         parts.append(
             "Analyse the video and still frames using the domain patterns above."
         )
-        parts.append(
-            "Follow the perception-to-cognition chain. Return JSON:"
-        )
+        parts.append("Follow the perception-to-cognition chain. Return JSON:")
         parts.append("")
         parts.append(_OUTPUT_SCHEMA)
         parts.append("")
@@ -192,7 +187,7 @@ class PromptComposer:
 
         if user_query:
             parts.append("")
-            parts.append(f"ADDITIONAL CONTEXT FROM THE USER:\n{user_query}")
+            parts.append(f"ADDITIONAL CONTEXT FROM THE USER INSTRUCTION: {user_query}")
 
         return "\n".join(parts)
 

@@ -11,7 +11,6 @@ Provides three orchestration functions:
 from __future__ import annotations
 
 import logging
-from typing import List
 
 from langfuse import Langfuse
 
@@ -36,7 +35,7 @@ async def execute_video_analysis_stage(
     uuid_tag: str,
     langfuse_client: Langfuse,
     video_agent: VideoAgentTemplate,
-    camera_sources: List[CameraSource],
+    camera_sources: list[CameraSource],
     user_query: str | None = None,
     **prompt_kwargs,
 ) -> VideoAnalysisOutput:
@@ -51,15 +50,18 @@ async def execute_video_analysis_stage(
         uuid_tag: Unique identifier for the session/process.
         langfuse_client: Langfuse client for tracing.
         video_agent: Video agent configuration (model name, task template, params).
-        camera_sources: List of CameraSource objects describing each video file.
+        camera_sources: List of CameraSource objects describing each video file
+                        (dashcam front, dashcam rear, CCTV, etc.).
         user_query: Optional user query/instruction to augment the prompt.
         **prompt_kwargs: Additional keyword arguments forwarded to the prompt
-                         template.
+                         template (e.g., ``incident_ref="INC-12345"``).
 
     Returns:
         VideoAnalysisOutput containing detected crash events, timestamps,
         confidence scores, and an overall summary.
     """
+
+    # Collate the prompt from the Langfuse template
     prompt_text, prompt_object = await collate_prompt(
         metadata_instance=metadata_instance,
         langfuse=langfuse_client,
@@ -74,12 +76,14 @@ async def execute_video_analysis_stage(
         prompt_text if isinstance(prompt_text, str) else str(prompt_text)
     )
 
+    # Initialise the Video LLM client
     video_llm_client = VideoLLM(
         metadata_instance=metadata_instance,
         llm_agent=video_agent,
         langfuse=langfuse_client,
     )
 
+    # Execute the video analysis
     video_analysis_output = await video_llm_client.async_analyse_crash_footage(
         camera_sources=camera_sources,
         prompt_text=prompt_text_str,
@@ -103,7 +107,7 @@ async def execute_video_scene_analysis_stage(
     uuid_tag: str,
     langfuse_client: Langfuse,
     video_agent: VideoAgentTemplate,
-    camera_sources: List[CameraSource],
+    camera_sources: list[CameraSource],
     user_query: str | None = None,
     **prompt_kwargs,
 ) -> VideoSceneAnalysisOutput:
@@ -168,7 +172,7 @@ async def execute_video_scene_analysis_kg_stage(
     uuid_tag: str,
     langfuse_client: Langfuse,
     video_agent: VideoAgentTemplate,
-    camera_sources: List[CameraSource],
+    camera_sources: list[CameraSource],
     detected_vehicle_types: list[str],
     detected_road_type: str | None = None,
     keyword_hints: list[str] | None = None,

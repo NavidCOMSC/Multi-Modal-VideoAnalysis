@@ -1,4 +1,5 @@
-"""Pydantic and dataclass models for the collision knowledge graph.
+"""
+Pydantic and dataclass models for the collision knowledge graph.
 
 Defines the typed containers used throughout the KG module:
 - Domain entities (``CollisionPattern``, ``TrafficRegulation``)
@@ -39,7 +40,8 @@ class RoadGeometryNode:
 
 @dataclass
 class CollisionPattern:
-    """An archetype collision pattern stored as a graph node.
+    """
+    An archetype collision pattern stored as a graph node.
 
     Each pattern encodes visual signatures, a causal chain, and — crucially —
     a list of ``common_misidentifications`` that LLMs frequently make when
@@ -103,15 +105,11 @@ class ReasoningTrace(BaseModel):
     4. Causal conclusion — final event classification with evidence.
     """
 
-    global_perception: str = Field(
-        ..., description="Scene-level observations."
-    )
+    global_perception: str = Field(..., description="Scene-level observations.")
     vehicle_inventory: str = Field(
         ..., description="All vehicles with IDs and descriptions."
     )
-    interaction_analysis: str = Field(
-        ..., description="Vehicle interaction analysis."
-    )
+    interaction_analysis: str = Field(..., description="Vehicle interaction analysis.")
     causal_conclusion: str = Field(
         ..., description="Final causal attribution with temporal evidence."
     )

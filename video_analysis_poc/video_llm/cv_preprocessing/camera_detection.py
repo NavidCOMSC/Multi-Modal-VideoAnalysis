@@ -1,4 +1,5 @@
-"""Camera motion classification via optical flow stability analysis.
+"""
+Camera motion classification via optical flow stability analysis.
 
 Analyses the first few seconds of a video to classify the camera as:
 - **static** (CCTV) — very low global optical flow; all motion is real.
