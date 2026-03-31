@@ -1,9 +1,0 @@
-{
-  "task_name": "video_crash_analysis_demo",
-  "crash_events": [],
-  "summary": "No road traffic collisions or near-miss events were detected in the provided footage. The video shows a large truck pulling away, followed by a pan across a busy city street with normal pedestrian and vehicle activity.",
-  "raw_output": {
-    "crash_events": [],
-    "summary": "No road traffic collisions or near-miss events were detected in the provided footage. The video shows a large truck pulling away, followed by a pan across a busy city street with normal pedestrian and vehicle activity."
-  }
-}
