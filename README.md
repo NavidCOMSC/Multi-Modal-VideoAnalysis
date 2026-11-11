@@ -10,7 +10,7 @@ The project grew out of a series of Jupyter notebooks. Their logic has since bee
 
 General-purpose video LLMs make predictable mistakes on collision footage. These are the cases the pipeline is built to catch:
 
-- A vehicle stopped on a roundabout gets described as *"inexplicably stationary"*, when the stop was **caused** by an earlier sideswipe.
+- A vehicle stopped on a roundabout gets described as _"inexplicably stationary"_, when the stop was **caused** by an earlier sideswipe.
 - A vehicle that **arrives after** the incident gets blamed for it.
 - A lateral HGV swept-path scrape gets classified as a rear-end impact.
 - The striking vehicle is missed because it **left the scene**.
@@ -18,40 +18,21 @@ General-purpose video LLMs make predictable mistakes on collision footage. These
 The pipeline tackles these with four techniques:
 
 1. **Camera-aware prompting.** Optical flow classifies the camera as static CCTV, forward dashcam or handheld, so the model knows whether background motion is real.
-2. **Knowledge-graph RAG.** Retrieved collision archetypes come with explicit *ERRORS TO AVOID*, plus the traffic regulations that apply.
+2. **Knowledge-graph RAG.** Retrieved collision archetypes come with explicit _ERRORS TO AVOID_, plus the traffic regulations that apply.
 3. **Chain-of-thought output.** The model fills in a `reasoning_trace` (perception → vehicle inventory → interactions → causal conclusion) before it writes the structured answer.
 4. **Two-pass verification.** A second LLM call re-checks the first answer against the top pattern's common misidentifications.
 
 ---
 
-## Pipeline overview
-
-```mermaid
-flowchart LR
-    V[Video file(s)] --> CD[CameraProfileDetector<br/>optical flow]
-    V --> KF[KeyFrameExtractor<br/>stills at timestamps]
-    H[Vehicle types, road type,<br/>keyword hints] --> R[KGRetriever]
-    KG[(CollisionKnowledgeGraph<br/>NetworkX)] --> R
-    CD --> PC[PromptComposer]
-    R --> PC
-    PC --> P1[Pass 1<br/>KG-augmented analysis]
-    KF --> P1
-    V --> P1
-    P1 --> P2[Pass 2<br/>verification]
-    P2 --> O[VideoSceneAnalysisOutput<br/>Pydantic]
-    P1 -. traces .-> LF[Langfuse]
-    P2 -. traces .-> LF
-```
-
 ### Analysis modes
 
 `VideoLLM` (in `llm_wrapper.py`) offers three modes, each with an orchestration function in `llm_caller.py`:
 
-| Mode | `VideoLLM` method | Orchestrator in `llm_caller.py` | Output |
-|---|---|---|---|
-| Crash-only detection | `async_analyse_crash_footage` | `execute_video_analysis_stage` | `VideoAnalysisOutput` |
-| Full scene description | `async_analyse_scene_footage` (+ `_batch`) | `execute_video_scene_analysis_stage` | `VideoSceneAnalysisOutput` |
-| **KG-augmented two-pass** | `async_analyse_scene_footage_kg` | `execute_video_scene_analysis_kg_stage` | `VideoSceneAnalysisOutput` with `reasoning_trace` |
+| Mode                      | `VideoLLM` method                          | Orchestrator in `llm_caller.py`         | Output                                            |
+| ------------------------- | ------------------------------------------ | --------------------------------------- | ------------------------------------------------- |
+| Crash-only detection      | `async_analyse_crash_footage`              | `execute_video_analysis_stage`          | `VideoAnalysisOutput`                             |
+| Full scene description    | `async_analyse_scene_footage` (+ `_batch`) | `execute_video_scene_analysis_stage`    | `VideoSceneAnalysisOutput`                        |
+| **KG-augmented two-pass** | `async_analyse_scene_footage_kg`           | `execute_video_scene_analysis_kg_stage` | `VideoSceneAnalysisOutput` with `reasoning_trace` |
 
 The first two modes take their prompts from **Langfuse prompt management**. The KG mode builds its prompts in code with `PromptComposer`; to steer it for a specific incident, pass `user_query`.
 
@@ -113,6 +94,7 @@ The first two modes take their prompts from **Langfuse prompt management**. The 
   - `lane_change_sideswipe`
 
   Each pattern has visual signatures, a causal chain and a list of `common_misidentifications`.
+
 - **4 UK regulations:** `uk_roundabout_priority`, `uk_lane_discipline`, `uk_hgv_swept_path` and `uk_hit_and_run`.
 - **Edge relations:** `INVOLVES`, `OCCURS_ON`, `OFTEN_FOLLOWED_BY` and `APPLIES_TO`.
 
@@ -120,11 +102,11 @@ You can build the graph from a dict (`from_dict`), load it from GraphML (`from_g
 
 `KGRetriever.retrieve_patterns` scores each pattern with configurable `RetrievalWeights`:
 
-| Signal | Default weight |
-|---|---|
-| Matching vehicle type (per type) | +2 |
-| Matching road geometry | +3 |
-| Matching keyword hint (per keyword) | +1 |
+| Signal                              | Default weight |
+| ----------------------------------- | -------------- |
+| Matching vehicle type (per type)    | +2             |
+| Matching road geometry              | +3             |
+| Matching keyword hint (per keyword) | +1             |
 
 `retrieve_regulations` returns the regulations for the jurisdiction that either apply to the road type through an `APPLIES_TO` edge or are marked `general`.
 
@@ -170,13 +152,13 @@ poetry install --no-root --with video,notebook,dev
 
 Dependency groups:
 
-| Group | Contents |
-|---|---|
-| main | pydantic, litellm, langfuse, langchain, Azure SDKs, numpy/pandas |
-| `video` | opencv-python-headless, PyAV, ffmpeg-python, imageio, scikit-image, matplotlib |
-| `notebook` | JupyterLab, ipykernel, ipywidgets |
-| `azure` | Azure Monitor / OpenTelemetry instrumentation |
-| `dev` | pytest, pytest-asyncio, pytest-cov, mypy, ruff, black, pre-commit |
+| Group      | Contents                                                                       |
+| ---------- | ------------------------------------------------------------------------------ |
+| main       | pydantic, litellm, langfuse, langchain, Azure SDKs, numpy/pandas               |
+| `video`    | opencv-python-headless, PyAV, ffmpeg-python, imageio, scikit-image, matplotlib |
+| `notebook` | JupyterLab, ipykernel, ipywidgets                                              |
+| `azure`    | Azure Monitor / OpenTelemetry instrumentation                                  |
+| `dev`      | pytest, pytest-asyncio, pytest-cov, mypy, ruff, black, pre-commit              |
 
 > **Note:** `networkx` isn't declared directly. It comes in transitively through `scikit-image` in the `video` group, so install that group (or add `networkx` explicitly).
 
@@ -194,12 +176,12 @@ export PYTHONPATH="$PWD:$PWD/video_analysis_poc:$PWD/video_analysis_poc/video_ll
 
 Credentials are read from a `MetadataTemplate` (`use_case_config/metadata.py`), which normally holds secrets resolved from Azure Key Vault. If no template is supplied, `VideoLLM` falls back to environment variables:
 
-| Variable | Used by | Purpose |
-|---|---|---|
-| `LITELLM_SECRET` | `VideoLLM` | LiteLLM API key (fallback) |
-| `LITELLM_URL` | `VideoLLM` | LiteLLM proxy base URL (fallback) |
-| `ENV` | Langfuse client / prompt collation | `dev` / `uat` / `prod` → Langfuse environment and prompt label |
-| `environment` | `keyvault/_az.py` | Key Vault environment selector |
+| Variable         | Used by                            | Purpose                                                        |
+| ---------------- | ---------------------------------- | -------------------------------------------------------------- |
+| `LITELLM_SECRET` | `VideoLLM`                         | LiteLLM API key (fallback)                                     |
+| `LITELLM_URL`    | `VideoLLM`                         | LiteLLM proxy base URL (fallback)                              |
+| `ENV`            | Langfuse client / prompt collation | `dev` / `uat` / `prod` → Langfuse environment and prompt label |
+| `environment`    | `keyvault/_az.py`                  | Key Vault environment selector                                 |
 
 Two pieces of setup are still yours to do:
 
@@ -283,8 +265,20 @@ If no `knowledge_graph` is passed, the default embedded graph is built for you.
     "interaction_analysis": "...",
     "causal_conclusion": "..."
   },
-  "environment": { "weather": "...", "lighting": "...", "road_type": "roundabout", "...": "..." },
-  "detected_objects": [ { "object_type": "truck", "first_seen_seconds": 12.0, "confidence": 0.9, "...": "..." } ],
+  "environment": {
+    "weather": "...",
+    "lighting": "...",
+    "road_type": "roundabout",
+    "...": "..."
+  },
+  "detected_objects": [
+    {
+      "object_type": "truck",
+      "first_seen_seconds": 12.0,
+      "confidence": 0.9,
+      "...": "..."
+    }
+  ],
   "events": [
     {
       "event_type": "collision",
@@ -310,14 +304,14 @@ Full saved outputs are in `video_analysis_poc/scene_analysis_*.json`.
 
 The notebooks trace how the approach developed. Each one adds a capability:
 
-| Notebook | What it shows |
-|---|---|
-| `video_crash_analysis_demo.ipynb` | Baseline: crash-event detection with Gemini 2.5 Pro via LiteLLM |
-| `video_scene_analysis_demo.ipynb` | Full scene description: all objects, environment and events |
-| `video_scene_analysis_demo_causality.ipynb` | Causal-reasoning prompts plus key-frame supplementation |
+| Notebook                                    | What it shows                                                         |
+| ------------------------------------------- | --------------------------------------------------------------------- |
+| `video_crash_analysis_demo.ipynb`           | Baseline: crash-event detection with Gemini 2.5 Pro via LiteLLM       |
+| `video_scene_analysis_demo.ipynb`           | Full scene description: all objects, environment and events           |
+| `video_scene_analysis_demo_causality.ipynb` | Causal-reasoning prompts plus key-frame supplementation               |
 | `video_scene_analysis_demo_logic_rag.ipynb` | Knowledge-graph RAG, chain-of-thought reasoning and verification pass |
-| `video_analysis_integration_demo.ipynb` | The refactored module stack run end to end on a new video |
-| `video_llm/modules_caller.ipynb` | Lists the models available behind the LiteLLM proxy |
+| `video_analysis_integration_demo.ipynb`     | The refactored module stack run end to end on a new video             |
+| `video_llm/modules_caller.ipynb`            | Lists the models available behind the LiteLLM proxy                   |
 
 Update the video paths and credentials at the top of each notebook before you run it.
 
